@@ -1,6 +1,3 @@
-#  (c) goodprogrammer.ru
-#
-
 require 'game_help_generator'
 
 # Игровой вопрос — при создании новой игры формируется массив

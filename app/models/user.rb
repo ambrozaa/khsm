@@ -1,5 +1,3 @@
-#  (c) goodprogrammer.ru
-#
 # Юзер — он и в Африке юзер, только в Африке черный :)
 class User < ActiveRecord::Base
   devise :database_authenticatable, :registerable, :recoverable, :validatable, :rememberable

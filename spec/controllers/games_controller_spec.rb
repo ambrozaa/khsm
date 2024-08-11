@@ -1,5 +1,3 @@
-# (c) goodprogrammer.ru
-
 require 'rails_helper'
 require 'support/my_spec_helper' # наш собственный класс с вспомогательными методами
 
@@ -28,7 +26,44 @@ RSpec.describe GamesController, type: :controller do
       expect(response).to redirect_to(new_user_session_path) # devise должен отправить на логин
       expect(flash[:alert]).to be # во flash должен быть прописана ошибка
     end
+
+    it 'kick from #create' do
+      # вызываем экшен
+      post :create, id: game_w_questions.id
+      # проверяем ответ
+      expect(response.status).not_to eq(200) # статус не 200 ОК
+      expect(response).to redirect_to(new_user_session_path) # devise должен отправить на логин
+      expect(flash[:alert]).to be # во flash должен быть прописана ошибка
+    end
+
+    it 'kick from #answer' do
+      # вызываем экшен
+      put :answer, id: game_w_questions.id
+      # проверяем ответ
+      expect(response.status).not_to eq(200) # статус не 200 ОК
+      expect(response).to redirect_to(new_user_session_path) # devise должен отправить на логин
+      expect(flash[:alert]).to be # во flash должен быть прописана ошибка
+    end
+
+    it 'kick from #take_money' do
+      # вызываем экшен
+      put :take_money, id: game_w_questions.id
+      # проверяем ответ
+      expect(response.status).not_to eq(200) # статус не 200 ОК
+      expect(response).to redirect_to(new_user_session_path) # devise должен отправить на логин
+      expect(flash[:alert]).to be # во flash должен быть прописана ошибка
+    end
+
+    it 'kick from #help' do
+      # вызываем экшен
+      put :help, id: game_w_questions.id
+      # проверяем ответ
+      expect(response.status).not_to eq(200) # статус не 200 ОК
+      expect(response).to redirect_to(new_user_session_path) # devise должен отправить на логин
+      expect(flash[:alert]).to be # во flash должен быть прописана ошибка
+    end
   end
+
 
   # группа тестов на экшены контроллера, доступных залогиненным юзерам
   context 'Usual user' do
@@ -74,6 +109,19 @@ RSpec.describe GamesController, type: :controller do
       expect(flash.empty?).to be_truthy # удачный ответ не заполняет flash
     end
 
+    it 'answers wrong' do
+      # передаем параметр params[:letter]
+      put :answer, id: game_w_questions.id, letter: "a"
+      game = assigns(:game)
+
+      expect(game.finished?).to be_truthy
+      expect(game.current_level).to be(0)
+      expect(game.status).to eq(:fail)
+      expect(response.status).to eq(302)
+      expect(response).to redirect_to(user_path(user))
+      expect(flash[:alert]).to be_truthy # удачный ответ не заполняет flash
+    end
+
     # тест на отработку "помощи зала"
     it 'uses audience help' do
       # сперва проверяем что в подсказках текущего вопроса пусто
@@ -91,6 +139,25 @@ RSpec.describe GamesController, type: :controller do
       expect(game.current_game_question.help_hash[:audience_help].keys).to contain_exactly('a', 'b', 'c', 'd')
       expect(response).to redirect_to(game_path(game))
     end
+
+    it 'user can use 50/50' do
+      # сперва проверяем что в подсказках текущего вопроса пусто
+      expect(game_w_questions.current_game_question.help_hash[:fifty_fifty]).not_to be
+      expect(game_w_questions.fifty_fifty_used).to be_falsey
+
+      # фигачим запрос в контроллер с нужным типом
+      put :help, id: game_w_questions.id, help_type: :fifty_fifty
+      game = assigns(:game)
+
+     # проверяем, что игра не закончилась, что флажок установился, и подсказка записалась
+      expect(game.finished?).to be_falsey
+      expect(game.fifty_fifty_used).to be_truthy
+      expect(game.current_game_question.help_hash[:fifty_fifty]).to be
+      expect(game.current_game_question.help_hash[:fifty_fifty]).to include('d')
+      expect(game.current_game_question.help_hash[:fifty_fifty].size).to eq 2
+      expect(response).to redirect_to(game_path(game))
+    end
+
     context 'alien game' do
       it '#show alien game' do
         alien_game = FactoryGirl.create(:game_with_questions)
@@ -101,6 +168,16 @@ RSpec.describe GamesController, type: :controller do
         expect(response).to redirect_to(root_path)
         expect(flash[:alert]).to be
       end
+    end
+    it '#create double game for user' do
+      # сперва накидаем вопросов, из чего собирать новую игру
+      expect(game_w_questions.finished?).to be_falsey
+      expect { post :create }.to change(Game, :count).by(0)
+
+      game = assigns(:game)
+      expect(game).to be_nil
+      expect(response).to redirect_to(game_path(game_w_questions))
+      expect(flash[:alert]).to be
     end
   end
 end
